@@ -30,16 +30,6 @@ mvn spring-boot:run
 
 Откройте http://localhost:8080
 
-## Учётные записи
-
-ADMIN:
-- login: admin
-- password: admin123
-
-MANAGER:
-- login: manager
-- password: manager123
-
 ## Демонстрация триггера
 
 1. Войдите как manager.
