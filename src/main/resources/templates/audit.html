@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><title>Аудит</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header><h1>Журнал изменений</h1><a href="/">← К товарам</a></header>
+<main>
+<table>
+<tr><th>ID</th><th>Товар</th><th>Старая цена</th><th>Новая цена</th><th>Время</th></tr>
+<tr th:each="log : ${logs}">
+    <td th:text="${log.id}"></td>
+    <td th:text="${log.productName}"></td>
+    <td th:text="${log.oldPrice} + ' ₽'"></td>
+    <td th:text="${log.newPrice} + ' ₽'"></td>
+    <td th:text="${log.changedAt}"></td>
+</tr>
+</table>
+</main>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru"
+      xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Товары</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+<header>
+    <h1>Учёт товаров</h1>
+
+    <nav>
+        <a href="/">Товары</a>
+
+        <!-- Видит только ADMIN -->
+        <a href="/audit" sec:authorize="hasRole('ADMIN')">
+            Журнал изменений
+        </a>
+
+        <a href="/products/new">Добавить товар</a>
+
+        <span>
+            Пользователь: <strong sec:authentication="name"></strong>
+        </span>
+
+        <span>
+            Роль:
+            <strong sec:authorize="hasRole('ADMIN')">ADMIN</strong>
+            <strong sec:authorize="hasRole('MANAGER')">MANAGER</strong>
+        </span>
+
+        <form action="/logout" method="post" style="display:inline">
+            <input type="hidden"
+                   th:name="${_csrf.parameterName}"
+                   th:value="${_csrf.token}">
+
+            <button type="submit">Выйти</button>
+        </form>
+    </nav>
+</header>
+
+<main>
+    <h2>Товары</h2>
+
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Название</th>
+            <th>Цена</th>
+            <th>Остаток</th>
+            <th>Действия</th>
+        </tr>
+
+        <tr th:each="p : ${products}">
+            <td th:text="${p.id}"></td>
+            <td th:text="${p.name}"></td>
+            <td th:text="${p.price} + ' ₽'"></td>
+            <td th:text="${p.stockQuantity}"></td>
+
+            <td>
+                <a th:href="@{/products/{id}/edit(id=${p.id})}">
+                    Изменить
+                </a>
+
+                <!-- Удаление видит только ADMIN -->
+                <form
+                        sec:authorize="hasRole('ADMIN')"
+                        th:action="@{/products/{id}/delete(id=${p.id})}"
+                        method="post"
+                        style="display:inline"
+                >
+                    <input type="hidden"
+                           th:name="${_csrf.parameterName}"
+                           th:value="${_csrf.token}">
+
+                    <button type="submit">Удалить</button>
+                </form>
+            </td>
+        </tr>
+    </table>
+</main>
+
+</body>
+</html>
