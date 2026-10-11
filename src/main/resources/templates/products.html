@@ -1,86 +1,185 @@
 <!DOCTYPE html>
-<html lang="ru"
-      xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html lang="ru" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
-    <title>Товары</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Товары — Складской учёт</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script th:src="@{/js/app.js}" defer></script>
 </head>
-
 <body>
-<header>
-    <h1>Учёт товаров</h1>
-
-    <nav>
-        <a href="/">Товары</a>
-
-        <!-- Видит только ADMIN -->
-        <a href="/audit" sec:authorize="hasRole('ADMIN')">
-            Журнал изменений
-        </a>
-
-        <a href="/products/new">Добавить товар</a>
-
-        <span>
-            Пользователь: <strong sec:authentication="name"></strong>
-        </span>
-
-        <span>
-            Роль:
-            <strong sec:authorize="hasRole('ADMIN')">ADMIN</strong>
-            <strong sec:authorize="hasRole('MANAGER')">MANAGER</strong>
-        </span>
-
-        <form action="/logout" method="post" style="display:inline">
-            <input type="hidden"
-                   th:name="${_csrf.parameterName}"
-                   th:value="${_csrf.token}">
-
-            <button type="submit">Выйти</button>
-        </form>
-    </nav>
+<header class="site-header">
+    <div class="header-inner">
+        <a class="brand" th:href="@{/}"><span class="brand-mark">С</span><span>Складской учёт<small>PRODUCT INVENTORY</small></span></a>
+        <nav class="main-nav" aria-label="Основная навигация">
+            <a class="nav-link active" th:href="@{/}">Товары</a>
+            <a class="nav-link" th:href="@{/inventory}">Склад</a>
+            <a class="nav-link" th:href="@{/orders}">Заказы</a>
+            <a class="nav-link" th:href="@{/analytics}" sec:authorize="hasRole('ADMIN')">Аналитика</a>
+            <a class="nav-link" th:href="@{/audit}" sec:authorize="hasRole('ADMIN')">Аудит</a>
+            <a class="nav-link" th:href="@{/creation-log}" sec:authorize="hasRole('ADMIN')">Создания</a>
+        </nav>
+        <div class="user-menu">
+            <div class="user-info">
+                <span class="user-name" sec:authentication="name">Пользователь</span>
+                <span class="role-pill" sec:authorize="hasRole('ADMIN')">ADMIN</span>
+                <span class="role-pill" sec:authorize="hasRole('MANAGER')">MANAGER</span>
+            </div>
+            <form th:action="@{/logout}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button class="button button-quiet button-small" type="submit">Выйти</button>
+            </form>
+        </div>
+    </div>
 </header>
 
-<main>
-    <h2>Товары</h2>
+<main class="page-shell">
+    <section class="page-heading">
+        <div>
+            <p class="eyebrow">Управление запасами</p>
+            <h1>Товары</h1>
+            <p class="muted">Список и актуальные остатки на складе</p>
+        </div>
+        <a class="button button-primary" th:href="@{/products/new}"><span aria-hidden="true">＋</span> Добавить товар</a>
+    </section>
+    <p class="error-message" th:if="${errorMessage}" th:text="${errorMessage}" role="alert"></p>
 
-    <table>
-        <tr>
-            <th>ID</th>
-            <th>Название</th>
-            <th>Цена</th>
-            <th>Остаток</th>
-            <th>Действия</th>
-        </tr>
+    <section class="stats-grid" aria-label="Сводка по складу">
+        <article class="stat-card">
+            <span class="stat-label">Товарных позиций</span>
+            <strong class="stat-value" th:text="${productCount}">0</strong>
+        </article>
+        <article class="stat-card">
+            <span class="stat-label">Единиц на складе</span>
+            <strong class="stat-value" th:text="${totalUnits}">0</strong>
+        </article>
+        <article class="stat-card">
+            <span class="stat-label">Стоимость остатков</span>
+            <strong class="stat-value" th:text="${#numbers.formatDecimal(inventoryValue, 1, 'COMMA', 2, 'POINT')} + ' ₽'">0 ₽</strong>
+        </article>
+        <article class="stat-card stat-card-warning">
+            <span class="stat-label">Низкий остаток</span>
+            <strong class="stat-value" th:text="${lowStockCount}">0</strong>
+        </article>
+        <article class="stat-card stat-card-muted">
+            <span class="stat-label">Нет на складе</span>
+            <strong class="stat-value" th:text="${outOfStockCount}">0</strong>
+        </article>
+    </section>
 
-        <tr th:each="p : ${products}">
-            <td th:text="${p.id}"></td>
-            <td th:text="${p.name}"></td>
-            <td th:text="${p.price} + ' ₽'"></td>
-            <td th:text="${p.stockQuantity}"></td>
-
-            <td>
-                <a th:href="@{/products/{id}/edit(id=${p.id})}">
-                    Изменить
-                </a>
-
-                <!-- Удаление видит только ADMIN -->
-                <form
-                        sec:authorize="hasRole('ADMIN')"
-                        th:action="@{/products/{id}/delete(id=${p.id})}"
-                        method="post"
-                        style="display:inline"
-                >
-                    <input type="hidden"
-                           th:name="${_csrf.parameterName}"
-                           th:value="${_csrf.token}">
-
-                    <button type="submit">Удалить</button>
-                </form>
-            </td>
-        </tr>
-    </table>
+    <section class="panel inventory-panel" aria-labelledby="inventory-title">
+        <div class="panel-heading catalog-panel-heading">
+            <div>
+                <h2 id="inventory-title">Каталог</h2>
+                <p class="muted">Поиск по названию и фильтр по остатку</p>
+            </div>
+            <form class="inventory-tools" id="catalog-filter" th:action="@{/}" method="get">
+                <label class="search-field">
+                    <span class="visually-hidden">Поиск товаров</span>
+                    <input id="product-search" name="q" type="search" th:value="${search}"
+                           placeholder="Найти товар…" autocomplete="off">
+                </label>
+                <label class="filter-field">
+                    <span class="visually-hidden">Фильтр наличия</span>
+                    <select id="stock-filter" name="stockFilter">
+                        <option value="all" th:selected="${stockFilter == 'all'}">Все товары</option>
+                        <option value="available" th:selected="${stockFilter == 'available'}">В наличии</option>
+                        <option value="low" th:selected="${stockFilter == 'low'}">Мало</option>
+                        <option value="out" th:selected="${stockFilter == 'out'}">Нет на складе</option>
+                    </select>
+                </label>
+                <label class="filter-field">
+                    <span class="visually-hidden">Товаров на странице</span>
+                    <select id="page-size" name="size">
+                        <option th:each="option : ${pageSizes}" th:value="${option}"
+                                th:selected="${option == pageSize}"
+                                th:text="${option} + ' на странице'">10 на странице</option>
+                    </select>
+                </label>
+                <input type="hidden" name="sort" th:value="${sort}">
+                <input type="hidden" name="direction" th:value="${direction}">
+                <button class="button button-secondary button-small" type="submit">Найти</button>
+                <a class="button button-secondary button-small"
+                   th:href="@{/products/export.csv(q=${search},stockFilter=${stockFilter},sort=${sort},direction=${direction})}">CSV</a>
+            </form>
+        </div>
+        <div class="table-scroll">
+            <table class="data-table" id="products-table">
+                <thead>
+                <tr>
+                    <th><a class="sort-link" th:href="@{/(q=${search},stockFilter=${stockFilter},size=${pageSize},sort='name',direction=${sort == 'name' and direction == 'asc' ? 'desc' : 'asc'})}">Товар</a></th>
+                    <th><a class="sort-link" th:href="@{/(q=${search},stockFilter=${stockFilter},size=${pageSize},sort='price',direction=${sort == 'price' and direction == 'asc' ? 'desc' : 'asc'})}">Цена</a></th>
+                    <th><a class="sort-link" th:href="@{/(q=${search},stockFilter=${stockFilter},size=${pageSize},sort='stockQuantity',direction=${sort == 'stockQuantity' and direction == 'asc' ? 'desc' : 'asc'})}">Количество</a></th>
+                    <th>Статус</th><th>Действия</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr class="product-row" th:each="p : ${products}"
+                    th:attr="data-name=${p.name},data-status=${p.stockQuantity == 0 ? 'out' : (p.stockQuantity <= 5 ? 'low' : 'available')}">
+                    <td data-label=""><strong class="product-name" th:text="${p.name}">Название</strong><span class="product-id" th:text="'#' + ${p.id}">#1</span></td>
+                    <td data-label="Цена" th:text="${#numbers.formatDecimal(p.price, 1, 'COMMA', 2, 'POINT')} + ' ₽'">0 ₽</td>
+                    <td data-label="Количество" th:text="${p.stockQuantity} + ' шт.'">0 шт.</td>
+                    <td data-label="Статус">
+                        <span class="status-pill"
+                              th:classappend="${p.stockQuantity == 0 ? 'status-out' : (p.stockQuantity <= 5 ? 'status-low' : 'status-available')}"
+                              th:text="${p.stockQuantity == 0 ? 'Нет на складе' : (p.stockQuantity <= 5 ? 'Мало' : 'В наличии')}">В наличии</span>
+                    </td>
+                    <td data-label="Действия">
+                        <div class="row-actions">
+                            <a class="button button-secondary button-small"
+                               th:href="@{/products/{id}/edit(id=${p.id})}">Изменить</a>
+                            <a class="button button-secondary button-small"
+                               th:href="@{/products/{id}/variants(id=${p.id})}">Варианты</a>
+                            <form sec:authorize="hasRole('ADMIN')"
+                                  class="delete-form"
+                                  th:action="@{/products/{id}/delete(id=${p.id})}" method="post"
+                                  th:attr="data-product-name=${p.name}">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button class="button button-danger button-small" type="submit">Удалить</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <p class="empty-state" id="empty-state" th:if="${#lists.isEmpty(products)}">По заданным условиям товары не найдены.</p>
+        </div>
+        <nav class="pagination" th:if="${catalog.totalPages > 1}" aria-label="Страницы каталога">
+            <a class="button button-secondary button-small" th:if="${catalog.hasPrevious()}"
+               th:href="@{/(page=${catalog.number - 1},size=${pageSize},q=${search},stockFilter=${stockFilter},sort=${sort},direction=${direction})}">Назад</a>
+            <span th:text="'Страница ' + ${catalog.number + 1} + ' из ' + ${catalog.totalPages}">Страница</span>
+            <a class="button button-secondary button-small" th:if="${catalog.hasNext()}"
+               th:href="@{/(page=${catalog.number + 1},size=${pageSize},q=${search},stockFilter=${stockFilter},sort=${sort},direction=${direction})}">Дальше</a>
+        </nav>
+    </section>
 </main>
 
+<footer class="site-footer"><span>Складской учёт</span><span>Учебный проект · PostgreSQL</span></footer>
+
+<div class="faq" id="faq-widget">
+    <section class="faq-panel" id="faq-panel" aria-label="Помощник по системе" hidden>
+        <header class="faq-header">
+            <div><strong>Помощник</strong><span>Ответы по работе со складом</span></div>
+            <button class="icon-button" id="faq-close" type="button" aria-label="Закрыть чат">×</button>
+        </header>
+        <div class="faq-messages" id="faq-messages" aria-live="polite">
+            <p class="chat-message chat-answer">Здравствуйте! Помогу с товарами, вариантами, складом, заказами и журналами.</p>
+        </div>
+        <div class="faq-quick-questions">
+            <button type="button" data-question="Как добавить товар?">Как добавить товар?</button>
+            <button type="button" data-question="Как принять приход товара?">Приход товара</button>
+            <button type="button" data-question="Как создать заказ?">Создать заказ</button>
+            <button type="button" data-question="Какие есть роли?">Какие есть роли?</button>
+        </div>
+        <p class="faq-status" id="faq-status" aria-live="polite"></p>
+        <form class="faq-form" id="faq-form" th:attr="data-csrf-token=${_csrf.token},data-csrf-header=${_csrf.headerName}">
+            <label class="visually-hidden" for="faq-question">Ваш вопрос</label>
+            <input id="faq-question" name="question" type="text" maxlength="500" placeholder="Напишите вопрос…" required>
+            <button class="button button-primary" type="submit">Отправить</button>
+        </form>
+    </section>
+    <button class="faq-launcher" id="faq-open" type="button" aria-expanded="false" aria-controls="faq-panel">Спросить помощника</button>
+</div>
 </body>
 </html>

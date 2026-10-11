@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Вход в систему — Складской учёт</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body class="auth-page">
+    <main class="auth-shell">
+        <section class="auth-panel" aria-labelledby="login-title">
+            <div class="auth-brand" aria-label="Складской учёт">
+                <span class="brand-mark">С</span>
+                <div>
+                    <span class="brand-name">Складской учёт</span>
+                    <small>PRODUCT INVENTORY</small>
+                </div>
+            </div>
+
+            <div class="auth-heading">
+                <p class="eyebrow">Вход</p>
+                <h1 id="login-title">Добро пожаловать</h1>
+                <p class="muted">Используйте учётные данные администратора или менеджера для доступа к складу.</p>
+            </div>
+
+            <div th:if="${param.error}" class="login-error" role="alert">
+                Неверный логин или пароль.
+            </div>
+            <div th:if="${param.logout}" class="login-success" role="status">
+                Вы успешно вышли из системы.
+            </div>
+
+            <form class="login-form" th:action="@{/login}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                <label class="form-field">
+                    <span>Логин</span>
+                    <input type="text" name="username" placeholder="Введите логин" autocomplete="username" required>
+                </label>
+
+                <label class="form-field">
+                    <span>Пароль</span>
+                    <input type="password" name="password" placeholder="Введите пароль" autocomplete="current-password" required>
+                </label>
+
+                <button type="submit" class="button button-primary button-full">Войти</button>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

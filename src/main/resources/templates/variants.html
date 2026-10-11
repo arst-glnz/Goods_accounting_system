@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="'Варианты — ' + ${product.name}">Варианты товара</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<header class="site-header">
+    <div class="header-inner">
+        <a class="brand" th:href="@{/}"><span class="brand-mark">С</span><span>Складской учёт<small>PRODUCT INVENTORY</small></span></a>
+        <nav class="main-nav" aria-label="Основная навигация">
+            <a class="nav-link" th:href="@{/}">Товары</a>
+            <a class="nav-link" th:href="@{/inventory}">Склад</a>
+            <a class="nav-link" th:href="@{/orders}">Заказы</a>
+            <a class="nav-link" th:href="@{/analytics}" sec:authorize="hasRole('ADMIN')">Аналитика</a>
+            <a class="nav-link" th:href="@{/audit}" sec:authorize="hasRole('ADMIN')">Аудит</a>
+            <a class="nav-link" th:href="@{/creation-log}" sec:authorize="hasRole('ADMIN')">Создания</a>
+        </nav>
+        <div class="user-menu">
+            <div class="user-info">
+                <span class="user-name" sec:authentication="name">Пользователь</span>
+                <span class="role-pill" sec:authorize="hasRole('ADMIN')">ADMIN</span>
+                <span class="role-pill" sec:authorize="hasRole('MANAGER')">MANAGER</span>
+            </div>
+            <form th:action="@{/logout}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button class="button button-quiet button-small" type="submit">Выйти</button>
+            </form>
+        </div>
+    </div>
+</header>
+<main class="page-shell">
+    <section class="page-heading">
+        <div>
+            <p class="eyebrow">Варианты товара</p>
+            <h1 th:text="${product.name}">Товар</h1>
+            <p class="muted">Управление размерами и характеристиками. Остатки меняются через складские операции.</p>
+        </div>
+        <a class="button button-secondary" th:href="@{/}">К каталогу</a>
+    </section>
+
+    <p class="success-message" th:if="${successMessage}" th:text="${successMessage}" role="status"></p>
+    <p class="error-message" th:if="${errorMessage}" th:text="${errorMessage}" role="alert"></p>
+
+    <section class="panel form-panel">
+        <h2>Добавить вариант</h2>
+        <form th:action="@{/products/{id}/variants(id=${product.id})}" th:object="${variantForm}" method="post" class="variant-form">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <label class="form-field"><span>Размер</span><input type="text" th:field="*{size}" maxlength="50" placeholder="M, L, one size"></label>
+            <label class="form-field"><span>Модификатор</span><input type="text" th:field="*{modifier}" maxlength="100"></label>
+            <label class="form-field"><span>Distress</span><input type="text" th:field="*{distress}" maxlength="100"></label>
+            <label class="form-field"><span>Stains</span><input type="text" th:field="*{stains}" maxlength="100"></label>
+            <button class="button button-primary" type="submit">Добавить вариант</button>
+        </form>
+    </section>
+
+    <section class="panel inventory-panel">
+        <div class="panel-heading"><div><h2>Текущие варианты</h2></div></div>
+        <div class="variant-list">
+            <form th:each="variant : ${variants}"
+                  th:action="@{/products/{productId}/variants/{variantId}(productId=${product.id},variantId=${variant.id})}"
+                  method="post" class="variant-form variant-edit-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <label class="form-field"><span>Размер</span><input type="text" name="size" th:value="${variant.size}" maxlength="50"></label>
+                <label class="form-field"><span>Модификатор</span><input type="text" name="modifier" th:value="${variant.modifier}" maxlength="100"></label>
+                <label class="form-field"><span>Distress</span><input type="text" name="distress" th:value="${variant.distress}" maxlength="100"></label>
+                <label class="form-field"><span>Stains</span><input type="text" name="stains" th:value="${variant.stains}" maxlength="100"></label>
+                <button class="button button-secondary" type="submit">Сохранить</button>
+            </form>
+            <p class="empty-state" th:if="${#lists.isEmpty(variants)}">У товара пока нет вариантов.</p>
+        </div>
+    </section>
+</main>
+<footer class="site-footer"><span>Складской учёт</span><span>Варианты товаров</span></footer>
+</body>
+</html>

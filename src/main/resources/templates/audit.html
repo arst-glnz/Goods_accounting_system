@@ -1,22 +1,58 @@
 <!DOCTYPE html>
-<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<html lang="ru" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
-    <meta charset="UTF-8"><title>Аудит</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Аудит — Складской учёт</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
-<header><h1>Журнал изменений</h1><a href="/">← К товарам</a></header>
-<main>
-<table>
-<tr><th>ID</th><th>Товар</th><th>Старая цена</th><th>Новая цена</th><th>Время</th></tr>
-<tr th:each="log : ${logs}">
-    <td th:text="${log.id}"></td>
-    <td th:text="${log.productName}"></td>
-    <td th:text="${log.oldPrice} + ' ₽'"></td>
-    <td th:text="${log.newPrice} + ' ₽'"></td>
-    <td th:text="${log.changedAt}"></td>
-</tr>
-</table>
+<header class="site-header">
+    <div class="header-inner">
+        <a class="brand" th:href="@{/}"><span class="brand-mark">С</span><span>Складской учёт<small>PRODUCT INVENTORY</small></span></a>
+        <nav class="main-nav" aria-label="Основная навигация">
+            <a class="nav-link" th:href="@{/}">Товары</a>
+            <a class="nav-link" th:href="@{/inventory}">Склад</a>
+            <a class="nav-link" th:href="@{/orders}">Заказы</a>
+            <a class="nav-link" th:href="@{/analytics}">Аналитика</a>
+            <a class="nav-link active" th:href="@{/audit}">Аудит</a>
+            <a class="nav-link" th:href="@{/creation-log}">Создания</a>
+        </nav>
+        <div class="user-menu">
+            <div class="user-info">
+                <span class="user-name" sec:authentication="name">Пользователь</span>
+                <span class="role-pill" sec:authorize="hasRole('ADMIN')">ADMIN</span>
+            </div>
+            <form th:action="@{/logout}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button class="button button-quiet button-small" type="submit">Выйти</button>
+            </form>
+        </div>
+    </div>
+</header>
+<main class="page-shell">
+    <section class="page-heading">
+        <div><p class="eyebrow">Администрирование</p><h1>Аудит цен</h1>
+            <p class="muted">История изменения цен, записанная триггером PostgreSQL</p></div>
+    </section>
+    <section class="panel">
+        <div class="table-scroll">
+            <table class="data-table">
+                <thead><tr><th>Товар</th><th>Старая цена</th><th>Новая цена</th><th>Дата изменения</th></tr></thead>
+                <tbody>
+                <tr th:each="log : ${logs}">
+                    <td data-label=""><strong th:text="${log.productName}">Товар</strong><span class="product-id" th:text="'#' + ${log.productId}">#1</span></td>
+                    <td data-label="Старая цена" th:text="${#numbers.formatDecimal(log.oldPrice, 1, 'COMMA', 2, 'POINT')} + ' ₽'">0 ₽</td>
+                    <td data-label="Новая цена" th:text="${#numbers.formatDecimal(log.newPrice, 1, 'COMMA', 2, 'POINT')} + ' ₽'">0 ₽</td>
+                    <td data-label="Дата изменения" th:text="${#temporals.format(log.changedAt, 'dd.MM.yyyy HH:mm')}">Дата</td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(logs)}"><td colspan="4" class="table-empty">Записей об изменении цен пока нет.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
 </main>
+<footer class="site-footer"><span>Складской учёт</span><span>Триггер log_price_change()</span></footer>
 </body>
 </html>

@@ -39,13 +39,18 @@ public class SecurityConfig {
             throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/css/**").permitAll()
+                .requestMatchers("/css/**", "/js/**", "/login", "/error").permitAll()
+                .requestMatchers("/", "/products/**", "/api/faq")
+                    .hasAnyRole("ADMIN", "MANAGER")
+                .requestMatchers("/audit", "/creation-log", "/analytics")
+                    .hasRole("ADMIN")
                 .anyRequest().authenticated())
             .formLogin(form -> form
+                .loginPage("/login")
                 .defaultSuccessUrl("/", true)
                 .permitAll())
             .logout(logout -> logout
-                    .logoutSuccessUrl("/")
+                    .logoutSuccessUrl("/login?logout")
                     .permitAll());
         return http.build();
     }

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Склад — Складской учёт</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<header class="site-header">
+    <div class="header-inner">
+        <a class="brand" th:href="@{/}"><span class="brand-mark">С</span><span>Складской учёт<small>PRODUCT INVENTORY</small></span></a>
+        <nav class="main-nav" aria-label="Основная навигация">
+            <a class="nav-link" th:href="@{/}">Товары</a>
+            <a class="nav-link active" th:href="@{/inventory}">Склад</a>
+            <a class="nav-link" th:href="@{/orders}">Заказы</a>
+            <a class="nav-link" th:href="@{/analytics}" sec:authorize="hasRole('ADMIN')">Аналитика</a>
+            <a class="nav-link" th:href="@{/audit}" sec:authorize="hasRole('ADMIN')">Аудит</a>
+            <a class="nav-link" th:href="@{/creation-log}" sec:authorize="hasRole('ADMIN')">Создания</a>
+        </nav>
+        <div class="user-menu">
+            <div class="user-info">
+                <span class="user-name" sec:authentication="name">Пользователь</span>
+                <span class="role-pill" sec:authorize="hasRole('ADMIN')">ADMIN</span>
+                <span class="role-pill" sec:authorize="hasRole('MANAGER')">MANAGER</span>
+            </div>
+            <form th:action="@{/logout}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button class="button button-quiet button-small" type="submit">Выйти</button>
+            </form>
+        </div>
+    </div>
+</header>
+<main class="page-shell">
+    <section class="page-heading">
+        <div>
+            <p class="eyebrow">Операции склада</p>
+            <h1>Остатки</h1>
+            <p class="muted">Остатки по вариантам и журнал последних движений</p>
+        </div>
+    </section>
+
+    <p class="success-message" th:if="${successMessage}" th:text="${successMessage}" role="status"></p>
+    <p class="error-message" th:if="${errorMessage}" th:text="${errorMessage}" role="alert"></p>
+
+    <section class="panel inventory-panel">
+        <div class="panel-heading">
+            <div><h2>Приход или списание</h2><p class="muted">Каждая операция сохраняется в журнале</p></div>
+        </div>
+        <form th:action="@{/inventory/movements}" th:object="${movement}" method="post" class="movement-form">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <label class="form-field">
+                <span>Вариант товара</span>
+                <select th:field="*{variantId}" required>
+                    <option value="">Выберите вариант</option>
+                    <option th:each="variant : ${variants}" th:value="${variant.id}"
+                            th:text="${variant.product.name} + ' · ' + (${variant.size} ?: 'без размера') + ' · остаток: ' + ${variantStock[variant.id]}">Товар</option>
+                </select>
+            </label>
+            <label class="form-field">
+                <span>Склад</span>
+                <select th:field="*{warehouseId}" required>
+                    <option th:each="warehouse : ${warehouses}" th:value="${warehouse.id}" th:text="${warehouse.name}">Склад</option>
+                </select>
+            </label>
+            <label class="form-field">
+                <span>Операция</span>
+                <select th:field="*{type}" required>
+                    <option value="RECEIPT">Приход</option>
+                    <option value="ISSUE">Списание</option>
+                </select>
+            </label>
+            <label class="form-field">
+                <span>Количество</span>
+                <input type="number" th:field="*{quantity}" min="1" step="1" required>
+            </label>
+            <label class="form-field movement-note">
+                <span>Комментарий</span>
+                <input type="text" th:field="*{note}" maxlength="500" placeholder="Причина или примечание">
+            </label>
+            <button class="button button-primary" type="submit">Записать операцию</button>
+        </form>
+    </section>
+
+    <section class="panel inventory-panel">
+        <div class="panel-heading">
+            <div><h2>Текущие остатки</h2><p class="muted">Количество доступных единиц по каждому варианту</p></div>
+        </div>
+        <div class="table-scroll">
+            <table class="data-table">
+                <thead><tr><th>Товар</th><th>Вариант</th><th>Склад</th><th>Остаток</th></tr></thead>
+                <tbody>
+                <tr th:each="stock : ${stocks}">
+                    <td th:text="${stock.variant.product.name}">Товар</td>
+                    <td th:text="${stock.variant.size} ?: 'Без размера'">Размер</td>
+                    <td th:text="${stock.warehouse.name}">Склад</td>
+                    <td th:text="${stock.quantity} + ' шт.'">0 шт.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="panel inventory-panel">
+        <div class="panel-heading">
+            <div><h2>История операций</h2><p class="muted">Последние 100 изменений остатков</p></div>
+        </div>
+        <div class="table-scroll">
+            <table class="data-table">
+                <thead><tr><th>Дата</th><th>Товар / вариант</th><th>Тип</th><th>Изменение</th><th>Остаток</th><th>Комментарий</th></tr></thead>
+                <tbody>
+                <tr th:each="movement : ${movements}">
+                    <td th:text="${#temporals.format(movement.createdAt, 'dd.MM.yyyy HH:mm')}">Дата</td>
+                    <td th:text="${movement.variant.product.name} + ' · ' + (${movement.variant.size} ?: 'без размера')">Товар</td>
+                    <td th:text="${movement.movementType}">RECEIPT</td>
+                    <td th:text="${movement.quantity} + ' шт.'">0 шт.</td>
+                    <td th:text="${movement.quantityBefore} + ' → ' + ${movement.quantityAfter}">0 → 0</td>
+                    <td th:text="${movement.note} ?: '—'">—</td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(movements)}"><td colspan="6" class="table-empty">Операций пока нет.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+<footer class="site-footer"><span>Складской учёт</span><span>Остатки PostgreSQL</span></footer>
+</body>
+</html>

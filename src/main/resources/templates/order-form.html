@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Новый заказ — Складской учёт</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+<header class="site-header">
+    <div class="header-inner">
+        <a class="brand" th:href="@{/}"><span class="brand-mark">С</span><span>Складской учёт<small>PRODUCT INVENTORY</small></span></a>
+        <nav class="main-nav" aria-label="Основная навигация">
+            <a class="nav-link" th:href="@{/}">Товары</a>
+            <a class="nav-link" th:href="@{/inventory}">Склад</a>
+            <a class="nav-link active" th:href="@{/orders}">Заказы</a>
+            <a class="nav-link" th:href="@{/analytics}" sec:authorize="hasRole('ADMIN')">Аналитика</a>
+            <a class="nav-link" th:href="@{/audit}" sec:authorize="hasRole('ADMIN')">Аудит</a>
+            <a class="nav-link" th:href="@{/creation-log}" sec:authorize="hasRole('ADMIN')">Создания</a>
+        </nav>
+        <div class="user-menu">
+            <div class="user-info">
+                <span class="user-name" sec:authentication="name">Пользователь</span>
+                <span class="role-pill" sec:authorize="hasRole('ADMIN')">ADMIN</span>
+                <span class="role-pill" sec:authorize="hasRole('MANAGER')">MANAGER</span>
+            </div>
+            <form th:action="@{/logout}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button class="button button-quiet button-small" type="submit">Выйти</button>
+            </form>
+        </div>
+    </div>
+</header>
+<main class="page-shell page-shell-narrow">
+    <section class="page-heading">
+        <div>
+            <p class="eyebrow">Оформление</p>
+            <h1>Новый заказ</h1>
+            <p class="muted">Сначала заказ создаётся без списания. Остаток изменится после подтверждения.</p>
+        </div>
+    </section>
+    <p class="error-message" th:if="${formError}" th:text="${formError}" role="alert"></p>
+    <section class="panel form-panel">
+        <form th:action="@{/orders}" th:object="${orderForm}" method="post" class="order-form">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <div class="form-field">
+                <label for="recipientName">Получатель</label>
+                <input id="recipientName" type="text" th:field="*{recipientName}" maxlength="255" required>
+                <p class="field-error" th:if="${#fields.hasErrors('recipientName')}" th:errors="*{recipientName}"></p>
+            </div>
+            <div class="form-field">
+                <label for="phone">Телефон</label>
+                <input id="phone" type="tel" th:field="*{phone}" maxlength="50" required>
+                <p class="field-error" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"></p>
+            </div>
+            <div class="form-field">
+                <label for="deliveryAddress">Адрес доставки</label>
+                <input id="deliveryAddress" type="text" th:field="*{deliveryAddress}" maxlength="255" required>
+                <p class="field-error" th:if="${#fields.hasErrors('deliveryAddress')}" th:errors="*{deliveryAddress}"></p>
+            </div>
+            <div class="form-field">
+                <label for="warehouseId">Склад</label>
+                <select id="warehouseId" th:field="*{warehouseId}" required>
+                    <option th:each="warehouse : ${warehouses}" th:value="${warehouse.id}" th:text="${warehouse.name}">Склад</option>
+                </select>
+            </div>
+            <div class="order-lines-heading">
+                <div><h2>Позиции заказа</h2><p class="muted">Доступный остаток проверяется при подтверждении</p></div>
+                <button class="button button-secondary button-small" type="button" id="add-order-line">Добавить позицию</button>
+            </div>
+            <div id="order-lines" class="order-lines">
+                <div class="order-line" th:each="line, iter : *{lines}">
+                    <label class="form-field">
+                        <span>Вариант товара</span>
+                        <select th:field="*{lines[__${iter.index}__].variantId}">
+                            <option value="">Выберите вариант</option>
+                            <option th:each="variant : ${variants}" th:value="${variant.id}"
+                                    th:text="${variant.product.name} + ' · ' + (${variant.size} ?: 'без размера') + ' · доступно: ' + ${stockByVariant[variant.id]}">Вариант</option>
+                        </select>
+                    </label>
+                    <label class="form-field">
+                        <span>Количество</span>
+                        <input type="number" th:field="*{lines[__${iter.index}__].quantity}" min="1" step="1" placeholder="1">
+                    </label>
+                    <button class="icon-button remove-order-line" type="button" aria-label="Удалить позицию">×</button>
+                </div>
+            </div>
+            <template id="order-line-template">
+                <div class="order-line">
+                    <label class="form-field">
+                        <span>Вариант товара</span>
+                        <select name="lines[__INDEX__].variantId">
+                            <option value="">Выберите вариант</option>
+                            <option th:each="variant : ${variants}" th:value="${variant.id}"
+                                    th:text="${variant.product.name} + ' · ' + (${variant.size} ?: 'без размера') + ' · доступно: ' + ${stockByVariant[variant.id]}">Вариант</option>
+                        </select>
+                    </label>
+                    <label class="form-field">
+                        <span>Количество</span>
+                        <input type="number" name="lines[__INDEX__].quantity" min="1" step="1" placeholder="1">
+                    </label>
+                    <button class="icon-button remove-order-line" type="button" aria-label="Удалить позицию">×</button>
+                </div>
+            </template>
+            <div class="form-actions">
+                <button class="button button-primary" type="submit">Создать заказ</button>
+                <a class="button button-secondary" th:href="@{/orders}">Отмена</a>
+            </div>
+        </form>
+    </section>
+</main>
+<footer class="site-footer"><span>Складской учёт</span><span>Новый заказ</span></footer>
+</body>
+</html>

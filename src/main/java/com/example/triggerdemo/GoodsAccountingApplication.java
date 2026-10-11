@@ -4,8 +4,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class TriggerDemoApplication {
+public class GoodsAccountingApplication {
     public static void main(String[] args) {
-        SpringApplication.run(TriggerDemoApplication.class, args);
+        SpringApplication.run(GoodsAccountingApplication.class, args);
     }
 }

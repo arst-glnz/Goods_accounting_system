@@ -1,2 +1,5 @@
 # Исключенные пути проекта
 /target/
+.env
+.env.*
+!.env.example
